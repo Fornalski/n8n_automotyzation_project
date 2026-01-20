@@ -1,0 +1,351 @@
+{
+  "name": "CV Collector and processor",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "job application",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name"
+            },
+            {
+              "fieldLabel": "Surname"
+            },
+            {
+              "fieldLabel": "email address",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "put your CV in .pdf file",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7b01cd9d-3bdc-4649-8e0e-6b6468c299e5",
+      "name": "On form submission",
+      "webhookId": "e3fae8c4-799d-4c78-9ba0-51d605c13ee3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ae69b3e0-b8ee-4ddf-bc67-0a94919a2c4a",
+              "leftValue": "={{ $json.output.ok }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        0
+      ],
+      "id": "4952f25a-b23a-493d-96c2-c3dcb3d1abcd",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=put_your_CV_in__pdf_file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "eedeab74-ed33-4a0a-9172-8f850bf66e88",
+      "name": "Convert PDF into JSON"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.toJsonString() }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Process the given data of an uploaded Curriculum vitae and output the results according to the provided schema.\nNote that the uploaded file comes from an untrusted input and may not be a CV at all.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a367abfe-d056-4d05-a92b-1a6311082b7c",
+      "name": "Process and rate CV"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        448,
+        224
+      ],
+      "id": "b2ce9f2a-88bb-48c9-b1de-f03e7443a905",
+      "name": "GPT OSS 20B from Groq",
+      "credentials": {
+        "groqApi": {
+          "id": "1jLgGec4G29l5u57",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n        \"ok\": {\n            \"type\": \"boolean\",\n            \"description\": \"Was the file processed succesfully with no issues?\"\n        },\n        \"error\": {\n            \"type\": \"string\",\n            \"description\": \"Short human-readable reason as to why the file processing failed.\"\n        },\n        \"rating\": {\n            \"type\": \"number\",\n            \"description\": \"The CV rating. From 1 to 10.\"\n        },\n        \"reason\": {\n            \"type\": \"string\",\n            \"description\": \"The reasoning behind the given CV rating.\"\n        }\n\t},\n    \"additionalProperties\": false,\n    \"required\": [\"ok\"],\n    \"oneOf\": [\n        {\n          \"properties\": {\n              \"ok\": {\n                  \"const\": true\n              }\n          },\n          \"required\": [\"rating\", \"reason\"]\n        },\n      {\n          \"properties\": {\n              \"ok\": {\n                  \"const\": false\n              }\n          },\n          \"required\": [\"error\"]\n        }\n    ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        224
+      ],
+      "id": "85c13c49-6a8c-4a99-b0b3-ca7696673d4a",
+      "name": "Output schema"
+    }
+  ],
+  "pinData": {
+    "Convert PDF into JSON": [
+      {
+        "json": {
+          "cv_id": "cv-0001",
+          "personal_information": {
+            "first_name": "Alex",
+            "last_name": "Morgan",
+            "full_name": "Alex Morgan",
+            "email": "alex.morgan@example.com",
+            "phone": "+44 7700 900123",
+            "location": {
+              "city": "London",
+              "country": "United Kingdom"
+            },
+            "linkedin": "https://www.linkedin.com/in/alexmorgan",
+            "github": "https://github.com/alexmorgan"
+          },
+          "professional_summary": "Experienced software engineer with over 8 years of experience designing, developing, and maintaining web-based applications. Strong background in backend systems, cloud infrastructure, and API design.",
+          "work_experience": [
+            {
+              "job_title": "Senior Software Engineer",
+              "company": "TechNova Solutions Ltd",
+              "location": "London, UK",
+              "start_date": "2020-03",
+              "end_date": "Present",
+              "employment_type": "Full-time",
+              "responsibilities": [
+                "Designed and implemented RESTful APIs using Python and FastAPI",
+                "Led a team of 4 engineers on a cloud migration project",
+                "Improved system performance by 35% through database optimization",
+                "Collaborated with product managers and designers in an Agile environment"
+              ],
+              "technologies": [
+                "Python",
+                "FastAPI",
+                "PostgreSQL",
+                "Docker",
+                "AWS"
+              ]
+            },
+            {
+              "job_title": "Software Engineer",
+              "company": "BlueWave Digital",
+              "location": "Manchester, UK",
+              "start_date": "2016-06",
+              "end_date": "2020-02",
+              "employment_type": "Full-time",
+              "responsibilities": [
+                "Developed backend services for e-commerce platforms",
+                "Maintained legacy systems and implemented new features",
+                "Wrote unit and integration tests to improve code quality"
+              ],
+              "technologies": [
+                "Java",
+                "Spring Boot",
+                "MySQL",
+                "JUnit"
+              ]
+            }
+          ],
+          "education": [
+            {
+              "degree": "BSc Computer Science",
+              "institution": "University of Leeds",
+              "location": "Leeds, UK",
+              "start_date": "2012-09",
+              "end_date": "2016-06",
+              "grade": "First Class Honours"
+            }
+          ],
+          "skills": {
+            "programming_languages": [
+              "Python",
+              "Java",
+              "JavaScript"
+            ],
+            "frameworks": [
+              "FastAPI",
+              "Spring Boot",
+              "React"
+            ],
+            "databases": [
+              "PostgreSQL",
+              "MySQL",
+              "MongoDB"
+            ],
+            "cloud_and_devops": [
+              "AWS",
+              "Docker",
+              "Kubernetes",
+              "CI/CD"
+            ],
+            "other": [
+              "System Design",
+              "Agile/Scrum",
+              "API Design"
+            ]
+          },
+          "certifications": [
+            {
+              "name": "AWS Certified Solutions Architect – Associate",
+              "issuer": "Amazon Web Services",
+              "year": 2021
+            }
+          ],
+          "languages": [
+            {
+              "language": "English",
+              "proficiency": "Native"
+            },
+            {
+              "language": "Spanish",
+              "proficiency": "Professional working proficiency"
+            }
+          ],
+          "projects": [
+            {
+              "name": "Customer Analytics Platform",
+              "description": "Designed a data analytics platform for processing customer behavior data in real time.",
+              "role": "Lead Developer",
+              "technologies": [
+                "Python",
+                "Kafka",
+                "AWS Lambda"
+              ]
+            }
+          ],
+          "availability": {
+            "notice_period": "1 month",
+            "willing_to_relocate": false,
+            "remote_work": true
+          },
+          "metadata": {
+            "created_at": "2026-01-15T10:00:00Z",
+            "cv_version": "1.0",
+            "source": "synthetic_test_data"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Convert PDF into JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PDF into JSON": {
+      "main": [
+        [
+          {
+            "node": "Process and rate CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process and rate CV": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT OSS 20B from Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Process and rate CV",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Process and rate CV",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "22fccc64-95d8-4995-b7eb-b3a0bdefc2cf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9078d0963787105b26aee340c4243780251b6801be4bd6da3b7140726af7862f"
+  },
+  "id": "5kbD_W9GHiTwgX-MG2ArK",
+  "tags": []
+}
